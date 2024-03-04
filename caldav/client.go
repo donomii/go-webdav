@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/emersion/go-ical"
-	"github.com/emersion/go-webdav"
-	"github.com/emersion/go-webdav/internal"
+	"github.com/donomii/go-webdav"
+	"github.com/donomii/go-webdav/internal"
 )
 
 // DiscoverContextURL performs a DNS-based CardDAV service discovery as

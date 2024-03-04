@@ -3,13 +3,16 @@ package webdav
 import (
 	"context"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 
-	"github.com/emersion/go-webdav/internal"
+	"github.com/donomii/go-webdav/internal"
+	"github.com/google/uuid"
 )
 
 // FileSystem is a WebDAV server backend.
@@ -58,7 +61,7 @@ type backend struct {
 func (b *backend) Options(r *http.Request) (caps []string, allow []string, err error) {
 	fi, err := b.FileSystem.Stat(r.Context(), r.URL.Path)
 	if internal.IsNotFound(err) {
-		return nil, []string{http.MethodOptions, http.MethodPut, "MKCOL"}, nil
+		return nil, []string{http.MethodOptions, http.MethodPut, "MKCOL", "LOCK", "UNLOCK"}, nil
 	} else if err != nil {
 		return nil, nil, err
 	}
@@ -69,6 +72,8 @@ func (b *backend) Options(r *http.Request) (caps []string, allow []string, err e
 		"PROPFIND",
 		"COPY",
 		"MOVE",
+		"LOCK",
+		"UNLOCK",
 	}
 
 	if !fi.IsDir {
@@ -245,6 +250,37 @@ func (b *backend) Move(r *http.Request, dest *internal.Href, overwrite bool) (cr
 	return created, err
 }
 
+func (b *backend) Lock(r *http.Request, lock *internal.LockInfo) (*internal.LockDiscovery, error) {
+	fmt.Printf("Locking %s\n", r.URL.Path)
+	randomUUID := uuid.New()
+	url,err :=  url.Parse("opaquelocktoken:" + randomUUID.String())
+	if err != nil {
+		return nil, err
+	}
+	ret := &internal.LockDiscovery{
+		ActiveLocks: []internal.ActiveLock{
+			{
+				LockType: lock.LockType,
+				LockScope: lock.LockScope,
+				Depth: "Infinity",
+				Owner: lock.Owner,
+				Timeout: "Second-345600",
+				//Make a random string for a lock token
+				LockToken: internal.LockToken{Href: internal.Href(*url)},
+			},
+		},
+	}
+
+	return ret, nil
+
+
+}
+
+func (b *backend) Unlock(r *http.Request, lockToken string) error {
+	fmt.Printf("Unlocking %s\n", r.URL.Path)
+	return NewHTTPError(http.StatusNoContent, nil)
+}
+
 // BackendSuppliedHomeSet represents either a CalDAV calendar-home-set or a
 // CardDAV addressbook-home-set. It should only be created via
 // caldav.NewCalendarHomeSet or carddav.NewAddressBookHomeSet. Only to
@@ -274,11 +310,11 @@ type ServePrincipalOptions struct {
 func ServePrincipal(w http.ResponseWriter, r *http.Request, options *ServePrincipalOptions) {
 	switch r.Method {
 	case http.MethodOptions:
-		caps := []string{"1", "3"}
+		caps := []string{"1", "2", "3"}
 		for _, c := range options.Capabilities {
 			caps = append(caps, string(c))
 		}
-		allow := []string{http.MethodOptions, "PROPFIND", "REPORT", "DELETE", "MKCOL"}
+		allow := []string{http.MethodOptions, "PROPFIND", "REPORT", "DELETE", "MKCOL", "LOCK", "UNLOCK"}
 		w.Header().Add("DAV", strings.Join(caps, ", "))
 		w.Header().Add("Allow", strings.Join(allow, ", "))
 		w.WriteHeader(http.StatusNoContent)

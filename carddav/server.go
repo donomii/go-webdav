@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/emersion/go-vcard"
-	"github.com/emersion/go-webdav"
-	"github.com/emersion/go-webdav/internal"
+	"github.com/donomii/go-webdav"
+	"github.com/donomii/go-webdav/internal"
 )
 
 type PutAddressObjectOptions struct {
@@ -284,7 +284,7 @@ func (b *backend) Options(r *http.Request) (caps []string, allow []string, err e
 	if b.resourceTypeAtPath(r.URL.Path) != resourceTypeAddressObject {
 		// Note: some clients assume the address book is read-only when
 		// DELETE/MKCOL are missing
-		return caps, []string{http.MethodOptions, "PROPFIND", "REPORT", "DELETE", "MKCOL"}, nil
+		return caps, []string{http.MethodOptions, "PROPFIND", "REPORT", "DELETE", "MKCOL", "LOCK", "UNLOCK"}, nil
 	}
 
 	var dataReq AddressDataRequest

@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/emersion/go-ical"
-	"github.com/emersion/go-webdav"
-	"github.com/emersion/go-webdav/internal"
+	"github.com/donomii/go-webdav"
+	"github.com/donomii/go-webdav/internal"
 )
 
 // TODO if nothing more Caldav-specific needs to be added this should be merged with carddav.PutAddressObjectOptions
@@ -318,7 +318,7 @@ func (b *backend) Options(r *http.Request) (caps []string, allow []string, err e
 	caps = []string{"calendar-access"}
 
 	if b.resourceTypeAtPath(r.URL.Path) != resourceTypeCalendarObject {
-		return caps, []string{http.MethodOptions, "PROPFIND", "REPORT", "DELETE", "MKCOL"}, nil
+		return caps, []string{http.MethodOptions, "PROPFIND", "REPORT", "DELETE", "MKCOL","LOCK","UNLOCK"}, nil
 	}
 
 	var dataReq CalendarCompRequest

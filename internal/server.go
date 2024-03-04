@@ -71,6 +71,8 @@ type Backend interface {
 	Mkcol(r *http.Request) error
 	Copy(r *http.Request, dest *Href, recursive, overwrite bool) (created bool, err error)
 	Move(r *http.Request, dest *Href, overwrite bool) (created bool, err error)
+	Lock(r *http.Request, lock *LockInfo) (*LockDiscovery, error)
+	Unlock(r *http.Request, LockToken string) error
 }
 
 type Handler struct {
@@ -82,6 +84,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if h.Backend == nil {
 		err = fmt.Errorf("webdav: no backend available")
 	} else {
+		fmt.Printf("Method: %s, path: %s\n", r.Method, r.URL.Path)
 		switch r.Method {
 		case http.MethodOptions:
 			err = h.handleOptions(w, r)
@@ -116,6 +119,8 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 		case "COPY", "MOVE":
 			err = h.handleCopyMove(w, r)
+		case "LOCK", "UNLOCK":
+			err = h.handleLockUnlock(w, r)
 		default:
 			err = HTTPErrorf(http.StatusMethodNotAllowed, "webdav: unsupported method")
 		}
@@ -131,7 +136,7 @@ func (h *Handler) handleOptions(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	caps = append([]string{"1", "3"}, caps...)
+	caps = append([]string{"1", "2", "3"}, caps...)
 
 	w.Header().Add("DAV", strings.Join(caps, ", "))
 	w.Header().Add("Allow", strings.Join(allow, ", "))
@@ -318,5 +323,38 @@ func (h *Handler) handleCopyMove(w http.ResponseWriter, r *http.Request) error {
 	} else {
 		w.WriteHeader(http.StatusNoContent)
 	}
+	return nil
+}
+
+func (h *Handler) handleLockUnlock(w http.ResponseWriter, r *http.Request) error {
+
+	if r.Method == "LOCK" {
+		var lock LockInfo
+		if err := DecodeXMLRequest(r, &lock); err != nil {
+			return err
+		}
+
+		resp, err := h.Backend.Lock(r, &lock)
+		if err != nil {
+			return err
+		}
+
+		w.WriteHeader(http.StatusOK)
+		return ServeXML(w).Encode(resp)
+
+	}
+
+	if r.Method == "UNLOCK" {
+		lockToken := r.Header.Get("Lock-Token")
+		if lockToken == "" {
+			return HTTPErrorf(http.StatusBadRequest, "webdav: missing Lock-Token header in UNLOCK request")
+		}
+
+		//code :=h.Backend.Unlock(r, lockToken)
+
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+
 	return nil
 }

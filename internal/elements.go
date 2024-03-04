@@ -424,6 +424,51 @@ type PropertyUpdate struct {
 	Set     []Set    `xml:"set"`
 }
 
+type LockInfo struct {
+	XMLName   xml.Name `xml:"DAV: lockinfo"`
+	LockScope LockScope `xml:"lockscope"`
+	LockType  LockType `xml:"locktype"`
+	Owner     *Owner `xml:"owner,omitempty"`
+}
+
+type LockScope struct {
+	XMLName   xml.Name `xml:"DAV: lockscope"`
+	Exclusive *struct{} `xml:"exclusive,omitempty"`
+	Shared    *struct{} `xml:"shared,omitempty"`
+}
+
+type LockType struct {
+	XMLName xml.Name `xml:"DAV: locktype"`
+	Write   *struct{} `xml:"write,omitempty"`
+}
+
+type Owner struct {
+	XMLName xml.Name `xml:"DAV: owner"`
+	Href    Href     `xml:"href"`
+}
+
+
+type LockDiscovery struct {
+	XMLName     xml.Name `xml:"DAV: lockdiscovery"`
+	ActiveLocks []ActiveLock `xml:"activelock"`
+}
+
+type ActiveLock struct {
+	XMLName xml.Name `xml:"DAV: activelock"`
+	LockType LockType `xml:"locktype"`
+	LockScope LockScope `xml:"lockscope"`
+	Depth string `xml:"depth"`
+	Owner *Owner `xml:"owner,omitempty"`
+	Timeout string `xml:"timeout"`
+	LockToken LockToken `xml:"locktoken"`
+}
+
+type LockToken struct {
+	XMLName xml.Name `xml:"DAV: locktoken"`
+	Href    Href     `xml:"href"`
+}
+
+
 // https://tools.ietf.org/html/rfc4918#section-14.23
 type Remove struct {
 	XMLName xml.Name `xml:"DAV: remove"`
